@@ -1,12 +1,9 @@
-// Minimal service worker — required for Android "Add to Home Screen" prompt.
-// Caches the app shell so it loads instantly even on slow connections.
-
 const CACHE = 'podcast-gen-v1';
 const SHELL = [
-  '/podcast-generator.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/AIPodcast/podcast-generator.html',
+  '/AIPodcast/manifest.json',
+  '/AIPodcast/icons/icon-192.png',
+  '/AIPodcast/icons/icon-512.png',
 ];
 
 self.addEventListener('install', e => {
@@ -24,7 +21,6 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Only cache same-origin GET requests (not API calls)
   if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
