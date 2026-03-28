@@ -6,131 +6,341 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#111111" />
+  <meta name="theme-color" content="#0f0f0f" />
   <title>AI Podcast Generator</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #f0f0ee; --card: #fff; --border: #e0e0e0; --border2: #d1d5db;
-      --text: #1a1a1a; --text2: #444; --text3: #888; --text4: #bbb;
-      --accent: #2563eb; --accent-l: rgba(37,99,235,0.1);
-      --green: #16a34a; --green-l: #f0fdf4; --green-b: #86efac;
-      --red: #dc2626; --red-l: #fef2f2; --red-b: #fca5a5;
-      --radius: 12px;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bot: env(safe-area-inset-bottom, 0px);
+      --bg:        #f2f2f0;
+      --card:      #ffffff;
+      --card2:     #f8f8f6;
+      --border:    #e4e4e0;
+      --border2:   #d0d0cc;
+      --text:      #111111;
+      --text2:     #444440;
+      --text3:     #888880;
+      --text4:     #bbbbaa;
+      --accent:    #1a56db;
+      --accent-l:  rgba(26,86,219,0.08);
+      --green:     #16a34a;
+      --green-l:   #f0fdf4;
+      --green-b:   #86efac;
+      --red:       #dc2626;
+      --red-l:     #fef2f2;
+      --red-b:     #fca5a5;
+      --amber:     #d97706;
+      --amber-l:   #fffbeb;
+      --amber-b:   #fcd34d;
+      --r-sm:      8px;
+      --r-md:      12px;
+      --r-lg:      16px;
+      --safe-t:    env(safe-area-inset-top, 0px);
+      --safe-b:    env(safe-area-inset-bottom, 0px);
+      --safe-l:    env(safe-area-inset-left, 0px);
+      --safe-r:    env(safe-area-inset-right, 0px);
     }
+
     html { -webkit-text-size-adjust: 100%; }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-      padding: calc(var(--safe-top) + 1rem) 1rem calc(var(--safe-bot) + 1.5rem);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding:
+        calc(var(--safe-t) + 0.75rem)
+        calc(var(--safe-r) + 0.875rem)
+        calc(var(--safe-b) + 4rem)
+        calc(var(--safe-l) + 0.875rem);
     }
-    .page { max-width: 1200px; margin: 0 auto; }
-    header { margin-bottom: 1.25rem; display: flex; align-items: center; gap: 12px; }
-    .header-icon { width: 40px; height: 40px; border-radius: 10px; background: #111; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    header h1 { font-size: 1.2rem; font-weight: 600; color: #111; line-height: 1.2; }
-    header p  { font-size: 0.8rem; color: var(--text3); margin-top: 2px; }
-    .layout { display: grid; grid-template-columns: 360px 1fr; gap: 1rem; align-items: start; }
-    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
-    .col { display: flex; flex-direction: column; gap: 1rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.125rem; }
-    .card-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text4); margin-bottom: 0.875rem; display: flex; align-items: center; justify-content: space-between; }
-    label { display: block; font-size: 0.83rem; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
-    .hint { font-size: 0.74rem; color: var(--text3); margin-top: 4px; line-height: 1.5; }
-    .hint a { color: var(--accent); }
-    .hint code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 0.82em; word-break: break-all; }
+
+    /* ── Layout ── */
+    .page { max-width: 480px; margin: 0 auto; }
+
+    /* Wide screen: side by side */
+    @media (min-width: 860px) {
+      body { padding-bottom: 2rem; }
+      .page { max-width: 900px; }
+      .wide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-icon {
+      width: 42px; height: 42px; border-radius: 11px;
+      background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+    .header-text h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .header-text p  { font-size: 0.75rem; color: var(--text3); margin-top: 1px; }
+
+    /* ── Status bar (always visible) ── */
+    .status-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      margin-bottom: 0.75rem;
+      font-size: 0.84rem;
+    }
+    .status-bar.connected    { background: var(--green-l); border-color: var(--green-b); color: #166534; }
+    .status-bar.disconnected { color: var(--text3); }
+    .status-bar.loading      { color: var(--text3); }
+    .s-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .s-dot.green { background: var(--green); }
+    .s-dot.grey  { background: #ccc; }
+    .s-dot.pulse { background: var(--accent); animation: blink 1s infinite; }
+    #authEmail { margin-left: auto; font-size: 0.72rem; color: inherit; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+    .s-action { margin-left: 4px; background: none; border: none; font-size: 0.72rem; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; -webkit-tap-highlight-color: transparent; }
+
+    /* ── Section accordion ── */
+    .section { margin-bottom: 0.625rem; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    .section-header:active { background: #f5f5f3; }
+    .section.open .section-header {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-color: transparent;
+    }
+    .section-header-left { display: flex; align-items: center; gap: 10px; }
+    .section-icon { font-size: 15px; line-height: 1; }
+    .section-label { font-size: 0.88rem; font-weight: 600; letter-spacing: -0.01em; }
+    .section-sub { font-size: 0.72rem; color: var(--text3); margin-top: 1px; }
+    .section-chevron {
+      color: var(--text4); font-size: 10px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .section.open .section-chevron { transform: rotate(90deg); }
+
+    .section-body {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-bottom-left-radius: var(--r-md);
+      border-bottom-right-radius: var(--r-md);
+      padding: 14px;
+    }
+    .section.open .section-body { display: block; }
+
+    /* ── Form ── */
     .field { margin-bottom: 0.875rem; }
     .field:last-child { margin-bottom: 0; }
-    .input-wrap { position: relative; display: flex; align-items: center; }
+    label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text2); margin-bottom: 5px; letter-spacing: 0.01em; }
+    .hint { font-size: 0.72rem; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+    .hint a { color: var(--accent); }
+    .hint code { background: #f0f0ee; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 0.82em; word-break: break-all; }
+
+    .input-wrap { position: relative; }
     .input-wrap input { padding-right: 40px; }
-    .eye-btn { position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: var(--text4); padding: 6px; line-height: 1; -webkit-tap-highlight-color: transparent; }
-    .eye-btn:hover, .eye-btn:active { color: var(--text2); }
+    .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text4); padding: 4px; line-height: 1; -webkit-tap-highlight-color: transparent; }
+    .eye-btn:active { color: var(--text2); }
+
     input[type="text"], input[type="password"], select, textarea {
-      width: 100%; padding: 10px 12px; font-size: 0.9rem;
-      border: 1px solid var(--border2); border-radius: 8px;
-      background: var(--card); color: var(--text); outline: none;
-      appearance: none; -webkit-appearance: none;
+      width: 100%; padding: 10px 12px;
+      font-size: 16px; /* prevents iOS zoom */
+      border: 1px solid var(--border2); border-radius: var(--r-sm);
+      background: var(--card2); color: var(--text); outline: none;
+      -webkit-appearance: none; appearance: none;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
-    @media (max-width: 720px) {
-      input[type="text"], input[type="password"], select, textarea { font-size: 16px; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-l);
+      background: var(--card);
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-l); }
-    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .checkbox-row input { width: 18px; height: 18px; accent-color: var(--accent); padding: 0; flex-shrink: 0; }
-    .checkbox-row label { margin: 0; font-weight: 400; color: var(--text3); font-size: 0.82rem; }
-    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 11px center;
+      padding-right: 30px; cursor: pointer;
+    }
+
+    .checkbox-row { display: flex; align-items: center; gap: 9px; margin-top: 7px; }
+    .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+    .checkbox-row label { margin: 0; font-weight: 400; color: var(--text3); font-size: 0.78rem; cursor: pointer; }
+
+    /* ── Topics ── */
     .topic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; }
     .topic-row input { flex: 1; }
-    .btn-remove { background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: var(--text4); font-size: 14px; padding: 8px 11px; line-height: 1; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
-    .btn-remove:active { background: #f5f5f5; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 0.84rem; border: 1px solid var(--border2); border-radius: 8px; background: var(--card); color: var(--text2); cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
-    .btn:active { background: #f0f0f0; transform: scale(0.98); }
-    .btn-primary { background: #111; color: #fff; border-color: #111; font-size: 1rem; padding: 14px 22px; width: 100%; justify-content: center; font-weight: 600; border-radius: 10px; }
-    .btn-primary:active { background: #333; }
-    .btn-primary:disabled { opacity: 0.38; pointer-events: none; }
-    .btn-google { background: var(--card); border: 1px solid var(--border2); color: var(--text2); font-size: 0.84rem; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; -webkit-tap-highlight-color: transparent; user-select: none; }
-    .btn-google:active { background: #f8f8f8; }
-    .auth-status { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 0.84rem; margin-bottom: 10px; }
-    .auth-status.connected    { background: var(--green-l); border: 1px solid var(--green-b); color: #166534; }
-    .auth-status.disconnected { background: #fafafa; border: 1px solid var(--border); color: #777; }
-    .auth-status.loading      { background: #fafafa; border: 1px solid var(--border); color: #777; }
-    .auth-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .auth-dot.green { background: var(--green); }
-    .auth-dot.grey  { background: #ccc; }
-    .auth-dot.spin  { background: var(--accent); animation: pulse 1s infinite; }
-    #authEmail { margin-left: auto; font-size: 0.75rem; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-    .collapsible-toggle { display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-size: 0.78rem; color: var(--accent); padding: 0; margin-bottom: 6px; -webkit-tap-highlight-color: transparent; }
-    .arrow { transition: transform 0.2s; display: inline-block; font-size: 9px; }
-    .collapsible-toggle.open .arrow { transform: rotate(90deg); }
-    .collapsible-body { display: none; }
-    .collapsible-body.open { display: block; }
-    .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 13px; font-size: 0.77rem; color: #1e40af; line-height: 1.7; }
-    .info-box ol { padding-left: 16px; margin-top: 5px; }
-    .info-box li { margin-bottom: 3px; }
-    .info-box a { color: #1d4ed8; }
-    .info-box code { background: #dbeafe; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 0.85em; word-break: break-all; }
-    .steps { display: none; margin-bottom: 1rem; }
-    .step { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.84rem; color: #555; }
+    .btn-remove {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      cursor: pointer; color: var(--text4); font-size: 13px;
+      padding: 9px 11px; line-height: 1; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-remove:active { background: #f0f0ee; color: var(--text2); }
+
+    .btn-add {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 6px; padding: 7px 12px;
+      font-size: 0.78rem; color: var(--accent);
+      background: var(--accent-l); border: none;
+      border-radius: var(--r-sm); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-add:active { opacity: 0.7; }
+
+    /* ── Prompt textarea ── */
+    #promptEditor {
+      min-height: 200px; font-family: monospace;
+      font-size: 13px; line-height: 1.6;
+      background: var(--card2); resize: vertical;
+    }
+    .prompt-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+    .btn-small {
+      padding: 5px 10px; font-size: 0.74rem;
+      border: 1px solid var(--border2); border-radius: 6px;
+      background: var(--card); color: var(--text3);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-small:active { background: #f0f0ee; }
+
+    /* ── Generate button ── */
+    .generate-wrap {
+      margin-top: 0.75rem;
+    }
+    .btn-generate {
+      width: 100%; padding: 16px;
+      font-size: 1.05rem; font-weight: 700;
+      letter-spacing: -0.01em;
+      background: #111; color: #fff;
+      border: none; border-radius: var(--r-lg);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.1s, background 0.1s;
+    }
+    .btn-generate:active { transform: scale(0.99); background: #222; }
+    .btn-generate:disabled { opacity: 0.35; pointer-events: none; }
+    .btn-generate .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .btn-generate.running .spinner { display: block; }
+    .btn-generate.running .btn-label { display: none; }
+
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── Progress steps ── */
+    .steps-wrap {
+      display: none;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-md); margin-top: 0.75rem;
+      overflow: hidden;
+    }
+    .step {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 11px 14px; border-bottom: 1px solid #f0f0ee;
+      font-size: 0.84rem; color: var(--text2);
+    }
     .step:last-child { border-bottom: none; }
-    .step-body { flex: 1; }
-    .step-detail { font-size: 0.73rem; color: var(--text3); margin-top: 2px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: #ddd; margin-top: 4px; }
+    .step-icon { flex-shrink: 0; margin-top: 1px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #ddd; }
+    .dot.active { background: var(--accent); animation: blink 1s infinite; }
     .dot.done   { background: var(--green); }
-    .dot.active { background: var(--accent); animation: pulse 1s infinite; }
     .dot.error  { background: var(--red); }
     .dot.skip   { background: #d1d5db; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .log-wrap { margin-top: 0.875rem; }
-    .log-toggle { background: none; border: none; cursor: pointer; font-size: 0.75rem; color: var(--text3); padding: 0; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; -webkit-tap-highlight-color: transparent; }
-    .log-box { background: #1a1a1a; color: #d4d4d4; border-radius: 8px; padding: 10px 13px; font-family: monospace; font-size: 0.72rem; line-height: 1.6; max-height: 200px; overflow-y: auto; display: none; }
-    .log-box.open { display: block; }
-    .log-line.ok    { color: #4ade80; }
-    .log-line.warn  { color: #facc15; }
-    .log-line.err   { color: #f87171; }
-    .log-line.muted { color: #555; }
-    .result { margin-top: 0.875rem; }
-    .success-box { background: var(--green-l); border: 1px solid var(--green-b); border-radius: 10px; padding: 12px 15px; font-size: 0.84rem; color: #166534; line-height: 1.6; }
-    .success-box a { color: #15803d; font-weight: 500; }
-    .success-box .ttl { font-weight: 600; margin-bottom: 4px; }
-    .success-box hr { border: none; border-top: 1px solid #bbf7d0; margin: 8px 0; }
-    .error-box { background: var(--red-l); border: 1px solid var(--red-b); border-radius: 10px; padding: 12px 15px; font-size: 0.84rem; color: #991b1b; line-height: 1.6; }
-    #promptEditor { min-height: 260px; font-family: monospace; font-size: 0.78rem; line-height: 1.6; background: #fafafa; resize: vertical; }
-    @media (max-width: 720px) { #promptEditor { font-size: 13px; min-height: 200px; } }
-    #installBanner { display: none; position: fixed; bottom: calc(var(--safe-bot) + 1rem); left: 1rem; right: 1rem; background: #111; color: #fff; border-radius: 12px; padding: 12px 16px; font-size: 0.84rem; z-index: 100; align-items: center; gap: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+    .step-body { flex: 1; }
+    .step-title  { font-weight: 500; }
+    .step-detail { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+
+    /* ── Log ── */
+    .log-section {
+      margin-top: 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      display: none;
+    }
+    .log-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; background: var(--card);
+      cursor: pointer; font-size: 0.78rem; color: var(--text3);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .log-header:active { background: #f5f5f3; }
+    .log-body { display: none; background: #141414; }
+    .log-body.open { display: block; }
+    .log-inner { padding: 10px 14px; font-family: monospace; font-size: 0.71rem; line-height: 1.65; color: #aaa; max-height: 180px; overflow-y: auto; }
+    .ll-ok   { color: #4ade80; }
+    .ll-warn { color: #fbbf24; }
+    .ll-err  { color: #f87171; }
+    .ll-dim  { color: #555; }
+
+    /* ── Result ── */
+    .result { margin-top: 0.75rem; }
+    .result-success {
+      background: var(--green-l); border: 1px solid var(--green-b);
+      border-radius: var(--r-md); padding: 14px;
+      font-size: 0.84rem; color: #166534; line-height: 1.6;
+    }
+    .result-success .r-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .result-success a { color: #15803d; font-weight: 600; }
+    .result-success .r-divider { border: none; border-top: 1px solid #bbf7d0; margin: 10px 0; }
+    .result-success .r-next { font-size: 0.8rem; }
+    .result-error {
+      background: var(--red-l); border: 1px solid var(--red-b);
+      border-radius: var(--r-md); padding: 14px;
+      font-size: 0.84rem; color: #991b1b; line-height: 1.6;
+    }
+    .result-error strong { display: block; margin-bottom: 4px; }
+
+    /* ── Info box ── */
+    .info-box {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: var(--r-sm); padding: 10px 13px;
+      font-size: 0.76rem; color: #1e40af; line-height: 1.7; margin-top: 10px;
+    }
+    .info-box ol { padding-left: 16px; margin-top: 4px; }
+    .info-box li { margin-bottom: 2px; }
+    .info-box a { color: #1d4ed8; }
+    .info-box code { background: #dbeafe; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 0.82em; word-break: break-all; }
+
+    /* ── Install banner ── */
+    #installBanner {
+      display: none; position: fixed;
+      bottom: calc(var(--safe-b) + 0.875rem);
+      left: 0.875rem; right: 0.875rem;
+      background: #111; color: #fff;
+      border-radius: var(--r-lg); padding: 13px 15px;
+      font-size: 0.82rem; z-index: 200;
+      align-items: center; gap: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    }
     #installBanner.show { display: flex; }
     .ib-text { flex: 1; line-height: 1.4; }
-    .ib-btn { background: #fff; color: #111; border: none; border-radius: 8px; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
-    .ib-close { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; padding: 0 4px; }
-    .save-hint { margin-top: 1rem; font-size: 0.72rem; color: var(--text4); text-align: center; }
+    .ib-text strong { display: block; }
+    .ib-install { background: #fff; color: #111; border: none; border-radius: 7px; padding: 8px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .ib-close  { background: none; border: none; color: #777; font-size: 20px; cursor: pointer; padding: 0 2px; line-height: 1; }
+
+    .footer-hint { text-align: center; font-size: 0.68rem; color: var(--text4); margin-top: 1.5rem; }
   </style>
 </head>
 <body>
 <div class="page">
 
+  <!-- ── HEADER ── -->
   <header>
     <div class="header-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -140,162 +350,233 @@
         <line x1="8" y1="22" x2="16" y2="22"/>
       </svg>
     </div>
-    <div>
-      <h1>AI Podcast Generator</h1>
-      <p>Claude &rarr; script &rarr; Google Drive &rarr; NotebookLM</p>
+    <div class="header-text">
+      <h1>Podcast Generator</h1>
+      <p>Claude &rarr; script &rarr; Drive &rarr; NotebookLM</p>
     </div>
   </header>
 
-  <div class="layout">
-    <div class="col">
+  <div class="wide-grid">
+  <div class="left-col">
 
-      <!-- CLAUDE API -->
-      <div class="card">
-        <div class="card-title">Claude API</div>
-        <div class="field">
-          <label for="claudeKey">API key</label>
-          <div class="input-wrap">
-            <input type="password" id="claudeKey" placeholder="sk-ant-..." autocomplete="off" />
-            <button class="eye-btn" onclick="toggleVis('claudeKey')" aria-label="Show/hide">
-              <svg id="eye-claudeKey" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-          <p class="hint">Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
-          <div class="checkbox-row">
-            <input type="checkbox" id="saveClaudeKey" />
-            <label for="saveClaudeKey">Remember on this device</label>
-          </div>
+  <!-- ── DRIVE STATUS (always visible) ── -->
+  <div id="statusBar" class="status-bar disconnected">
+    <div class="s-dot grey" id="sDot"></div>
+    <span id="sLabel">Google Drive not connected</span>
+    <span id="authEmail"></span>
+    <button class="s-action" id="sAction" onclick="handleStatusAction()">Connect</button>
+  </div>
+
+  <!-- ── TOPICS (open by default) ── -->
+  <div class="section open" id="sec-topics">
+    <div class="section-header" onclick="toggleSection('topics')">
+      <div class="section-header-left">
+        <span class="section-icon">📋</span>
+        <div>
+          <div class="section-label">Topics</div>
+          <div class="section-sub" id="topics-sub">2 topics</div>
         </div>
-        <div class="field">
-          <label for="appPassword">App password</label>
-          <div class="input-wrap">
-            <input type="password" id="appPassword" placeholder="Password set in Cloudflare" autocomplete="off" />
-            <button class="eye-btn" onclick="toggleVis('appPassword')" aria-label="Show/hide">
-              <svg id="eye-appPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-          <div class="checkbox-row">
-            <input type="checkbox" id="savePassword" />
-            <label for="savePassword">Remember on this device</label>
-          </div>
+      </div>
+      <span class="section-chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div id="topics">
+        <div class="topic-row"><input type="text" value="AI and agentic software development" oninput="updateTopicsSub()" /><button class="btn-remove" onclick="removeTopic(this)">✕</button></div>
+        <div class="topic-row"><input type="text" value="Cybersecurity" oninput="updateTopicsSub()" /><button class="btn-remove" onclick="removeTopic(this)">✕</button></div>
+      </div>
+      <button class="btn-add" onclick="addTopic()">+ Add topic</button>
+    </div>
+  </div>
+
+  <!-- ── PROMPT (collapsed) ── -->
+  <div class="section" id="sec-prompt">
+    <div class="section-header" onclick="toggleSection('prompt')">
+      <div class="section-header-left">
+        <span class="section-icon">✏️</span>
+        <div>
+          <div class="section-label">Prompt</div>
+          <div class="section-sub">Tap to edit</div>
         </div>
-        <div class="field">
-          <label for="workerUrl">Cloudflare Worker base URL</label>
-          <input type="text" id="workerUrl" placeholder="https://misty-mud-5a13.epiphonesgcustom.workers.dev" />
-          <p class="hint">Just the base URL — no <code>/claude</code> at the end</p>
-          <div class="checkbox-row">
-            <input type="checkbox" id="saveWorkerUrl" checked />
-            <label for="saveWorkerUrl">Remember on this device</label>
-          </div>
+      </div>
+      <span class="section-chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:0.73rem;color:var(--text3);margin-bottom:8px;line-height:1.5;">
+        <code>{{TOPICS}}</code>, <code>{{SHOW_NAME}}</code>, <code>{{STORIES}}</code>, <code>{{DATE}}</code> are substituted at run time.
+      </p>
+      <div class="prompt-actions">
+        <button class="btn-small" onclick="resetPrompt()">Reset to default</button>
+      </div>
+      <textarea id="promptEditor" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS (collapsed) ── -->
+  <div class="section" id="sec-settings">
+    <div class="section-header" onclick="toggleSection('settings')">
+      <div class="section-header-left">
+        <span class="section-icon">⚙️</span>
+        <div>
+          <div class="section-label">Settings</div>
+          <div class="section-sub">Show name, model, stories</div>
         </div>
-        <div class="field">
-          <label for="modelSelect">Model</label>
-          <select id="modelSelect">
-            <option value="claude-sonnet-4-5">Claude Sonnet — recommended</option>
-            <option value="claude-haiku-4-5-20251001">Claude Haiku — fastest &amp; cheapest</option>
-            <option value="claude-opus-4-5">Claude Opus — highest quality</option>
-          </select>
+      </div>
+      <span class="section-chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label for="showName">Show name</label>
+        <input type="text" id="showName" value="The Weekly Tech Brief" />
+      </div>
+      <div class="field">
+        <label for="modelSelect">Claude model</label>
+        <select id="modelSelect">
+          <option value="claude-sonnet-4-5">Claude Sonnet — recommended</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku — fastest &amp; cheapest</option>
+          <option value="claude-opus-4-5">Claude Opus — highest quality</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="storiesPerTopic">Stories per topic</label>
+        <input type="text" id="storiesPerTopic" value="5" inputmode="numeric" style="max-width:72px;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIG (collapsed) ── -->
+  <div class="section" id="sec-config">
+    <div class="section-header" onclick="toggleSection('config')">
+      <div class="section-header-left">
+        <span class="section-icon">🔑</span>
+        <div>
+          <div class="section-label">API configuration</div>
+          <div class="section-sub">Keys, Worker URL, Drive</div>
+        </div>
+      </div>
+      <span class="section-chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label for="claudeKey">Claude API key</label>
+        <div class="input-wrap">
+          <input type="password" id="claudeKey" placeholder="sk-ant-..." autocomplete="off" />
+          <button class="eye-btn" onclick="toggleVis('claudeKey')" aria-label="Show/hide">
+            <svg id="eye-claudeKey" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="saveClaudeKey" />
+          <label for="saveClaudeKey">Remember on this device</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="appPassword">App password</label>
+        <div class="input-wrap">
+          <input type="password" id="appPassword" placeholder="Set in Cloudflare secrets" autocomplete="off" />
+          <button class="eye-btn" onclick="toggleVis('appPassword')" aria-label="Show/hide">
+            <svg id="eye-appPassword" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="savePassword" />
+          <label for="savePassword">Remember on this device</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="workerUrl">Cloudflare Worker URL</label>
+        <input type="text" id="workerUrl" placeholder="https://your-worker.workers.dev" />
+        <div class="checkbox-row">
+          <input type="checkbox" id="saveWorkerUrl" checked />
+          <label for="saveWorkerUrl">Remember on this device</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="clientId">Google OAuth Client ID</label>
+        <div class="input-wrap">
+          <input type="password" id="clientId" placeholder="...apps.googleusercontent.com" autocomplete="off" />
+          <button class="eye-btn" onclick="toggleVis('clientId')" aria-label="Show/hide">
+            <svg id="eye-clientId" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="saveClientId" checked />
+          <label for="saveClientId">Remember on this device</label>
         </div>
       </div>
 
-      <!-- GOOGLE DRIVE -->
-      <div class="card">
-        <div class="card-title">Google Drive</div>
-        <div id="authStatus" class="auth-status disconnected">
-          <div class="auth-dot grey" id="authDot"></div>
-          <span id="authLabel">Not connected</span>
-          <span id="authEmail"></span>
+      <!-- Drive connect inside config -->
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <label style="margin-bottom:8px;">Google Drive</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="connectBtn" onclick="connectDrive()" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;font-size:0.82rem;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--card);cursor:pointer;-webkit-tap-highlight-color:transparent;">
+            <svg width="15" height="15" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Connect Google Drive
+          </button>
+          <button id="disconnectBtn" onclick="disconnectDrive()" style="display:none;padding:9px 14px;font-size:0.78rem;border:1px solid var(--border);border-radius:var(--r-sm);background:none;color:var(--text3);cursor:pointer;">Disconnect</button>
         </div>
-        <button class="collapsible-toggle" id="setupToggle" onclick="toggleSetup()">
-          <span class="arrow">&#9654;</span> Setup instructions
+
+        <!-- Setup instructions (collapsed) -->
+        <button class="collapsible-toggle" id="driveSetupToggle" onclick="toggleDriveSetup()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:0.74rem;color:var(--accent);padding:0;margin-top:10px;-webkit-tap-highlight-color:transparent;">
+          <span id="driveSetupArrow" style="display:inline-block;transition:transform 0.2s;font-size:9px;">&#9654;</span> Setup instructions
         </button>
-        <div class="collapsible-body" id="setupBody">
+        <div id="driveSetupBody" style="display:none;">
           <div class="info-box">
             <strong>One-time Google Cloud setup:</strong>
             <ol>
               <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console → Credentials</a></li>
               <li>Edit your OAuth client</li>
               <li>Add to Authorised redirect URIs:<br><code>https://misty-mud-5a13.epiphonesgcustom.workers.dev/auth/callback</code></li>
-              <li>Save</li>
+              <li>Save and wait a few minutes</li>
             </ol>
-            Sign-in opens a popup window. After signing in once, the app reconnects automatically on every future visit — no more login pages.
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn-google" id="connectBtn" onclick="connectDrive()">
-            <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            Connect Google Drive
-          </button>
-          <button class="btn" id="disconnectBtn" onclick="disconnectDrive()" style="display:none;font-size:0.77rem;color:#999;border-color:#e5e7eb;">Disconnect</button>
-        </div>
       </div>
-
-      <!-- TOPICS -->
-      <div class="card">
-        <div class="card-title">Topics</div>
-        <div id="topics">
-          <div class="topic-row"><input type="text" value="AI and agentic software development" /><button class="btn-remove" onclick="removeTopic(this)">✕</button></div>
-          <div class="topic-row"><input type="text" value="Cybersecurity" /><button class="btn-remove" onclick="removeTopic(this)">✕</button></div>
-        </div>
-        <button class="btn" onclick="addTopic()" style="margin-top:8px;font-size:0.78rem;">+ Add topic</button>
-      </div>
-
-      <!-- SETTINGS -->
-      <div class="card">
-        <div class="card-title">Podcast settings</div>
-        <div class="field">
-          <label for="showName">Show name</label>
-          <input type="text" id="showName" value="The Weekly Tech Brief" />
-        </div>
-        <div class="field">
-          <label for="storiesPerTopic">Stories per topic</label>
-          <input type="text" id="storiesPerTopic" value="5" inputmode="numeric" style="max-width:72px;" />
-        </div>
-      </div>
-
-    </div><!-- /col left -->
-
-    <div class="col">
-
-      <!-- PROMPT -->
-      <div class="card">
-        <div class="card-title">
-          <span>Prompt</span>
-          <button class="btn" onclick="resetPrompt()" style="font-size:0.7rem;padding:3px 9px;color:#999;">Reset</button>
-        </div>
-        <p style="font-size:0.73rem;color:var(--text3);margin-bottom:8px;line-height:1.5;">
-          Exact prompt sent to Claude. <code>{{TOPICS}}</code>, <code>{{SHOW_NAME}}</code>, <code>{{STORIES}}</code>, <code>{{DATE}}</code> substituted at run time.
-        </p>
-        <textarea id="promptEditor" spellcheck="false"></textarea>
-      </div>
-
-      <!-- GENERATE -->
-      <div class="card">
-        <button class="btn-primary" id="runBtn" onclick="run()">Generate &amp; upload ↗</button>
-        <div class="steps" id="stepsWrap">
-          <div class="step"><div class="dot" id="d1"></div><div class="step-body"><div id="t1">Calling Claude...</div><div class="step-detail" id="d1x"></div></div></div>
-          <div class="step"><div class="dot" id="d2"></div><div class="step-body"><div id="t2">Formatting script...</div><div class="step-detail" id="d2x"></div></div></div>
-          <div class="step"><div class="dot" id="d3"></div><div class="step-body"><div id="t3">Uploading to Drive...</div><div class="step-detail" id="d3x"></div></div></div>
-        </div>
-        <div class="log-wrap" id="logWrap" style="display:none;">
-          <button class="log-toggle" onclick="toggleLog()">
-            <span id="logArrow" style="display:inline-block;transition:transform 0.2s;">&#9654;</span>&nbsp;Activity log
-          </button>
-          <div class="log-box" id="logBox"></div>
-        </div>
-        <div class="result" id="result"></div>
-      </div>
-
-    </div><!-- /col right -->
+    </div>
   </div>
 
-  <p class="save-hint">All data stored locally on this device only.</p>
+  </div><!-- /left-col -->
+
+  <div class="right-col">
+
+  <!-- ── GENERATE ── -->
+  <div class="generate-wrap">
+    <button class="btn-generate" id="runBtn" onclick="run()">
+      <div class="spinner"></div>
+      <span class="btn-label">Generate &amp; upload ↗</span>
+    </button>
+  </div>
+
+  <!-- ── PROGRESS ── -->
+  <div class="steps-wrap" id="stepsWrap">
+    <div class="step"><div class="step-icon"><div class="dot" id="d1"></div></div><div class="step-body"><div class="step-title" id="t1">Calling Claude...</div><div class="step-detail" id="d1x"></div></div></div>
+    <div class="step"><div class="step-icon"><div class="dot" id="d2"></div></div><div class="step-body"><div class="step-title" id="t2">Formatting script...</div><div class="step-detail" id="d2x"></div></div></div>
+    <div class="step"><div class="step-icon"><div class="dot" id="d3"></div></div><div class="step-body"><div class="step-title" id="t3">Uploading to Drive...</div><div class="step-detail" id="d3x"></div></div></div>
+  </div>
+
+  <!-- ── LOG ── -->
+  <div class="log-section" id="logSection">
+    <div class="log-header" onclick="toggleLog()">
+      <span>Activity log</span>
+      <span id="logArrow" style="display:inline-block;transition:transform 0.2s;font-size:10px;color:var(--text4);">&#9654;</span>
+    </div>
+    <div class="log-body" id="logBody">
+      <div class="log-inner" id="logInner"></div>
+    </div>
+  </div>
+
+  <!-- ── RESULT ── -->
+  <div class="result" id="result"></div>
+
+  </div><!-- /right-col -->
+  </div><!-- /wide-grid -->
+
+  <p class="footer-hint">All keys stored locally on this device only.</p>
 </div>
 
-<!-- Install banner -->
+<!-- ── INSTALL BANNER ── -->
 <div id="installBanner">
-  <div class="ib-text"><strong>Install as app</strong><br>Add to your home screen</div>
-  <button class="ib-btn" onclick="installApp()">Install</button>
+  <div class="ib-text"><strong>Install as app</strong>Add to home screen for quick access</div>
+  <button class="ib-install" onclick="installApp()">Install</button>
   <button class="ib-close" onclick="dismissInstall()">✕</button>
 </div>
 
@@ -328,12 +609,27 @@ const LS = {
 // ── State ─────────────────────────────────────────────────────────────────
 let accessToken = null;
 
+// ── Sections ──────────────────────────────────────────────────────────────
+function toggleSection(id) {
+  const sec = document.getElementById('sec-' + id);
+  sec.classList.toggle('open');
+}
+
+// ── Drive setup collapsible ───────────────────────────────────────────────
+function toggleDriveSetup() {
+  const body = document.getElementById('driveSetupBody');
+  const arr  = document.getElementById('driveSetupArrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  arr.style.transform = open ? 'rotate(90deg)' : '';
+}
+
 // ── Eye toggle ────────────────────────────────────────────────────────────
 const EYE_OPEN  = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 const EYE_SLASH = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
 function toggleVis(id) {
   const inp = document.getElementById(id);
-  const eye = document.getElementById('eye-'+id);
+  const eye = document.getElementById('eye-' + id);
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
   eye.innerHTML = show ? EYE_SLASH : EYE_OPEN;
@@ -341,157 +637,149 @@ function toggleVis(id) {
   eye.setAttribute('stroke-width','2'); eye.setAttribute('stroke-linecap','round'); eye.setAttribute('stroke-linejoin','round');
 }
 
-// ── Collapsible ───────────────────────────────────────────────────────────
-function toggleSetup() {
-  const t = document.getElementById('setupToggle');
-  const b = document.getElementById('setupBody');
-  t.classList.toggle('open', b.classList.toggle('open'));
+// ── Topics ────────────────────────────────────────────────────────────────
+function updateTopicsSub() {
+  const n = document.querySelectorAll('#topics .topic-row').length;
+  document.getElementById('topics-sub').textContent = n + ' topic' + (n !== 1 ? 's' : '');
 }
-
-// ── Log ───────────────────────────────────────────────────────────────────
-function toggleLog() {
-  const box = document.getElementById('logBox');
-  const arr = document.getElementById('logArrow');
-  arr.style.transform = box.classList.toggle('open') ? 'rotate(90deg)' : '';
+function addTopic() {
+  const d = document.createElement('div'); d.className = 'topic-row';
+  d.innerHTML = '<input type="text" placeholder="Enter a topic..." oninput="updateTopicsSub()" /><button class="btn-remove" onclick="removeTopic(this)">✕</button>';
+  document.getElementById('topics').appendChild(d); d.querySelector('input').focus();
+  updateTopicsSub();
 }
-function log(msg, type='info') {
-  document.getElementById('logWrap').style.display = 'block';
-  const box = document.getElementById('logBox');
-  const el  = document.createElement('div');
-  el.className = 'log-line ' + type;
-  el.textContent = '['+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'] '+msg;
-  box.appendChild(el); box.scrollTop = box.scrollHeight;
-}
-function clearLog() {
-  document.getElementById('logBox').innerHTML = '';
-  document.getElementById('logWrap').style.display = 'none';
-  document.getElementById('logBox').classList.remove('open');
-  document.getElementById('logArrow').style.transform = '';
+function removeTopic(btn) {
+  if (document.querySelectorAll('.topic-row').length > 1) { btn.parentElement.remove(); updateTopicsSub(); }
 }
 
 // ── Prompt ────────────────────────────────────────────────────────────────
 function buildDefaultPrompt() {
   return 'You are a podcast script writer. Research and write a full, engaging weekly podcast script for the show "{{SHOW_NAME}}", covering the LATEST NEWS and developments from the past 7 days on these topics:\n{{TOPICS}}\n\nToday\'s date is {{DATE}}.\n\nStructure:\n- Warm, conversational intro setting the tone for the week\n- One clearly labelled segment per topic\n- {{STORIES}} specific recent stories per segment. For each: a clear headline, what happened, why it matters, interesting context\n- A wrap-up tying the main themes together\n- Tone: natural spoken-word audio — engaging, not too formal\n- Mark [HOST] at the start of each main section\n- Use --- STORY TITLE --- for each story\n- Target: ~1800 words\n\nWrite the complete script now:';
 }
-function resetPrompt() { document.getElementById('promptEditor').value = buildDefaultPrompt(); LS.del('saved_prompt'); }
+function resetPrompt() {
+  if (confirm('Reset prompt to default?')) {
+    document.getElementById('promptEditor').value = buildDefaultPrompt();
+    LS.del('saved_prompt');
+  }
+}
 function resolvePrompt(show, topics, stories, date) {
   return document.getElementById('promptEditor').value
     .replace(/\{\{SHOW_NAME\}\}/g,show).replace(/\{\{TOPICS\}\}/g,topics)
     .replace(/\{\{STORIES\}\}/g,stories).replace(/\{\{DATE\}\}/g,date);
 }
 
-// ── On load ───────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  [['claudeKey','claude_key','saveClaudeKey'],['appPassword','app_password','savePassword'],['workerUrl','worker_url','saveWorkerUrl']].forEach(([el,lk,cb]) => {
-    const v = LS.get(lk);
-    if (v) { document.getElementById(el).value = v; document.getElementById(cb).checked = true; }
-    document.getElementById(el).addEventListener('input', e => { if (document.getElementById(cb).checked) LS.set(lk, e.target.value.trim()); });
-    document.getElementById(cb).addEventListener('change', e => { e.target.checked ? LS.set(lk, document.getElementById(el).value.trim()) : LS.del(lk); });
-  });
-  document.getElementById('promptEditor').value = LS.get('saved_prompt') || buildDefaultPrompt();
-  document.getElementById('promptEditor').addEventListener('input', e => LS.set('saved_prompt', e.target.value));
-
-  // Listen for auth success message from popup
-  window.addEventListener('message', e => {
-    if (e.data?.type === 'GOOGLE_AUTH_SUCCESS') {
-      accessToken = e.data.access_token;
-      setAuthConnected(e.data.email);
-      log('Google Drive connected as ' + e.data.email, 'ok');
-    }
-  });
-
-  // Try to get a token silently on load
-  tryAutoConnect();
-});
-
-// ── Auth ──────────────────────────────────────────────────────────────────
-function getWorkerBase() {
-  return (document.getElementById('workerUrl').value.trim()).replace(/\/$/, '');
-}
-function getPassword() {
-  return document.getElementById('appPassword').value.trim();
-}
-
+// ── Auth UI ───────────────────────────────────────────────────────────────
 function setAuthConnected(email) {
-  document.getElementById('authDot').className    = 'auth-dot green';
-  document.getElementById('authLabel').textContent = 'Connected';
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar connected';
+  document.getElementById('sDot').className = 's-dot green';
+  document.getElementById('sLabel').textContent = 'Google Drive connected';
   document.getElementById('authEmail').textContent = email || '';
-  document.getElementById('authStatus').className  = 'auth-status connected';
-  document.getElementById('connectBtn').style.display    = 'none';
+  document.getElementById('sAction').textContent = 'Disconnect';
+  document.getElementById('connectBtn').style.display = 'none';
   document.getElementById('disconnectBtn').style.display = 'inline-flex';
 }
 function setAuthDisconnected() {
   accessToken = null;
-  document.getElementById('authDot').className    = 'auth-dot grey';
-  document.getElementById('authLabel').textContent = 'Not connected';
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar disconnected';
+  document.getElementById('sDot').className = 's-dot grey';
+  document.getElementById('sLabel').textContent = 'Google Drive not connected';
   document.getElementById('authEmail').textContent = '';
-  document.getElementById('authStatus').className  = 'auth-status disconnected';
-  document.getElementById('connectBtn').style.display    = 'inline-flex';
+  document.getElementById('sAction').textContent = 'Connect';
+  document.getElementById('connectBtn').style.display = 'inline-flex';
   document.getElementById('disconnectBtn').style.display = 'none';
 }
 function setAuthLoading() {
-  document.getElementById('authDot').className    = 'auth-dot spin';
-  document.getElementById('authLabel').textContent = 'Connecting...';
-  document.getElementById('authStatus').className  = 'auth-status loading';
+  document.getElementById('statusBar').className = 'status-bar loading';
+  document.getElementById('sDot').className = 's-dot pulse';
+  document.getElementById('sLabel').textContent = 'Connecting to Drive...';
+  document.getElementById('sAction').textContent = '';
+}
+function handleStatusAction() {
+  if (accessToken) disconnectDrive(); else connectDrive();
 }
 
-async function tryAutoConnect() {
-  const base = getWorkerBase();
-  const pw   = getPassword();
-  if (!base || !pw) return;
-  setAuthLoading();
-  try {
-    const resp = await fetch(base + '/auth/token', {
-      method: 'POST',
-      headers: { 'X-App-Password': pw }
+// ── On load ───────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore saved values
+  const fields = [
+    ['claudeKey','claude_key','saveClaudeKey'],
+    ['appPassword','app_password','savePassword'],
+    ['workerUrl','worker_url','saveWorkerUrl'],
+    ['clientId','goog_client_id','saveClientId'],
+  ];
+  fields.forEach(([el, lk, cb]) => {
+    const v = LS.get(lk);
+    if (v) { document.getElementById(el).value = v; document.getElementById(cb).checked = true; }
+    document.getElementById(el).addEventListener('input', e => {
+      if (document.getElementById(cb).checked) LS.set(lk, e.target.value.trim());
     });
-    if (!resp.ok) { setAuthDisconnected(); return; }
-    const data = await resp.json();
-    if (data.access_token) {
-      accessToken = data.access_token;
-      setAuthConnected(data.email);
-    } else {
-      setAuthDisconnected();
+    document.getElementById(cb).addEventListener('change', e => {
+      e.target.checked ? LS.set(lk, document.getElementById(el).value.trim()) : LS.del(lk);
+    });
+  });
+
+  document.getElementById('promptEditor').value = LS.get('saved_prompt') || buildDefaultPrompt();
+  document.getElementById('promptEditor').addEventListener('input', e => LS.set('saved_prompt', e.target.value));
+
+  // Auth message from popup
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+      accessToken = e.data.access_token;
+      setAuthConnected(e.data.email);
     }
-  } catch(e) {
-    setAuthDisconnected();
-  }
-}
+  });
+
+  handleOAuthCallback();
+  updateTopicsSub();
+});
+
+// ── OAuth ─────────────────────────────────────────────────────────────────
+function getWorkerBase() { return (document.getElementById('workerUrl').value.trim()).replace(/\/$/, ''); }
+function getPassword()   { return document.getElementById('appPassword').value.trim(); }
 
 function connectDrive() {
   const base = getWorkerBase();
   const pw   = getPassword();
-  if (!base) { alert('Please enter your Cloudflare Worker URL first.'); return; }
-  if (!pw)   { alert('Please enter your app password first.'); return; }
-  // Open Google login in a popup
+  if (!base) { alert('Please enter your Worker URL first (in API configuration).'); return; }
+  if (!pw)   { alert('Please enter your app password first (in API configuration).'); return; }
   const popup = window.open(
     base + '/auth/login?app_password=' + encodeURIComponent(pw),
     'google_auth',
-    'width=500,height=650,left=' + Math.round(screen.width/2-250) + ',top=' + Math.round(screen.height/2-325)
+    'width=500,height=650,left='+Math.round(screen.width/2-250)+',top='+Math.round(screen.height/2-325)
   );
-  if (!popup) {
-    // Popup blocked — fall back to redirect
-    window.location.href = base + '/auth/login?app_password=' + encodeURIComponent(pw);
-  }
+  if (!popup) window.location.href = base + '/auth/login?app_password=' + encodeURIComponent(pw);
 }
 
 async function disconnectDrive() {
-  const base = getWorkerBase();
-  const pw   = getPassword();
-  try {
-    await fetch(base + '/auth/logout', { method: 'POST', headers: { 'X-App-Password': pw } });
-  } catch(e) {}
+  const base = getWorkerBase(); const pw = getPassword();
+  try { await fetch(base+'/auth/logout', { method:'POST', headers:{'X-App-Password':pw} }); } catch(e) {}
   setAuthDisconnected();
 }
 
-// ── Topics ────────────────────────────────────────────────────────────────
-function addTopic() {
-  const d = document.createElement('div'); d.className = 'topic-row';
-  d.innerHTML = '<input type="text" placeholder="Enter a topic..." /><button class="btn-remove" onclick="removeTopic(this)">✕</button>';
-  document.getElementById('topics').appendChild(d); d.querySelector('input').focus();
+function handleOAuthCallback() {
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) { tryAutoConnect(); return; }
+  const token = new URLSearchParams(hash.substring(1)).get('access_token');
+  if (!token) return;
+  history.replaceState(null, '', window.location.pathname);
+  accessToken = token;
+  fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', { headers:{ Authorization:'Bearer '+token } })
+    .then(r=>r.json()).then(i=>setAuthConnected(i.email||'')).catch(()=>setAuthConnected(''));
 }
-function removeTopic(btn) {
-  if (document.querySelectorAll('.topic-row').length > 1) btn.parentElement.remove();
+
+async function tryAutoConnect() {
+  const base = getWorkerBase(); const pw = getPassword();
+  if (!base || !pw) return;
+  setAuthLoading();
+  try {
+    const resp = await fetch(base+'/auth/token', { method:'POST', headers:{'X-App-Password':pw} });
+    if (!resp.ok) { setAuthDisconnected(); return; }
+    const data = await resp.json();
+    if (data.access_token) { accessToken = data.access_token; setAuthConnected(data.email); }
+    else setAuthDisconnected();
+  } catch(e) { setAuthDisconnected(); }
 }
 
 // ── Steps ─────────────────────────────────────────────────────────────────
@@ -508,6 +796,28 @@ function resetSteps() {
   });
 }
 
+// ── Log ───────────────────────────────────────────────────────────────────
+function toggleLog() {
+  const body = document.getElementById('logBody');
+  const arr  = document.getElementById('logArrow');
+  const open = body.classList.toggle('open');
+  arr.style.transform = open ? 'rotate(90deg)' : '';
+}
+function log(msg, type='') {
+  document.getElementById('logSection').style.display = 'block';
+  const inner = document.getElementById('logInner');
+  const el = document.createElement('div');
+  el.className = type ? 'll-'+type : '';
+  el.textContent = '['+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'] '+msg;
+  inner.appendChild(el); inner.scrollTop = inner.scrollHeight;
+}
+function clearLog() {
+  document.getElementById('logInner').innerHTML = '';
+  document.getElementById('logSection').style.display = 'none';
+  document.getElementById('logBody').classList.remove('open');
+  document.getElementById('logArrow').style.transform = '';
+}
+
 // ── Main run ──────────────────────────────────────────────────────────────
 async function run() {
   const claudeKey = document.getElementById('claudeKey').value.trim();
@@ -516,76 +826,75 @@ async function run() {
   const showName  = document.getElementById('showName').value.trim() || 'The Weekly Tech Brief';
   const stories   = parseInt(document.getElementById('storiesPerTopic').value) || 5;
   const model     = document.getElementById('modelSelect').value || 'claude-sonnet-4-5';
-  const topics    = [...document.querySelectorAll('#topics input')].map(i => i.value.trim()).filter(Boolean);
+  const topics    = [...document.querySelectorAll('#topics input')].map(i=>i.value.trim()).filter(Boolean);
 
-  if (!claudeKey)     { alert('Please enter your Claude API key.'); return; }
-  if (!password)      { alert('Please enter your app password.'); return; }
-  if (!base)          { alert('Please enter your Cloudflare Worker URL.'); return; }
+  if (!claudeKey)     { alert('Claude API key missing — open API configuration.'); return; }
+  if (!password)      { alert('App password missing — open API configuration.'); return; }
+  if (!base)          { alert('Worker URL missing — open API configuration.'); return; }
   if (!topics.length) { alert('Please add at least one topic.'); return; }
 
   const btn = document.getElementById('runBtn');
-  btn.disabled = true;
+  btn.disabled = true; btn.classList.add('running');
   document.getElementById('stepsWrap').style.display = 'block';
   document.getElementById('result').innerHTML = '';
   resetSteps(); clearLog();
 
-  const today    = new Date();
-  const dateStr  = today.toISOString().slice(0,10).replace(/-/g,'');
+  const today   = new Date();
+  const dateStr = today.toISOString().slice(0,10).replace(/-/g,'');
   const fileName = 'ai-podcast'+dateStr+'.txt';
 
-  log('Starting: '+topics.join(', '));
-  log('Model: '+model);
+  log('Topics: '+topics.join(', '));
+  log('Model: '+model, 'dim');
 
   // Step 1 — Claude
-  setStep(1,'active','Calling Claude...','Waiting for response — 20–40 seconds...');
-  log('Sending to Cloudflare Worker...');
+  setStep(1,'active','Calling Claude...','This takes 20–40 seconds...');
+  log('Sending request to Cloudflare Worker...');
   let script = '';
   try {
-    const topicList = topics.map((t,i) => (i+1)+'. '+t).join('\n');
+    const topicList = topics.map((t,i)=>(i+1)+'. '+t).join('\n');
     const prompt    = resolvePrompt(showName, topicList, stories, today.toDateString());
     const t0 = Date.now();
     const resp = await fetch(base+'/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': claudeKey, 'X-App-Password': password },
-      body: JSON.stringify({ model, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] })
+      headers: { 'Content-Type':'application/json', 'X-Api-Key':claudeKey, 'X-App-Password':password },
+      body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'user',content:prompt}] })
     });
-    log('HTTP '+resp.status+' after '+((Date.now()-t0)/1000).toFixed(1)+'s');
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'Worker error '+resp.status); }
+    const elapsed = ((Date.now()-t0)/1000).toFixed(1);
+    log('Response received in '+elapsed+'s', resp.ok ? 'ok' : 'err');
+    if (!resp.ok) { const e=await resp.json().catch(()=>({})); throw new Error(e.error?.message||'Worker error '+resp.status); }
     const data = await resp.json();
     const raw  = data.content?.[0]?.text;
     if (!raw) throw new Error('No content returned. Check your API key and password.');
     const words = raw.trim().split(/\s+/).length;
-    log('~'+words+' words received', 'ok');
-    if (data.usage) log('Tokens — in: '+data.usage.input_tokens+' out: '+data.usage.output_tokens, 'muted');
+    log('~'+words+' words generated', 'ok');
+    if (data.usage) log('Tokens — in: '+data.usage.input_tokens+' out: '+data.usage.output_tokens, 'dim');
     setStep(1,'done','Claude complete.','~'+words+' words');
 
     // Step 2 — Format
     setStep(2,'active','Formatting...','');
     const sep = '='.repeat(56);
     script = showName.toUpperCase()+'\nEpisode date: '+today.toDateString()+'\nPrepared for Google NotebookLM\n'+sep+'\n\n'+raw+'\n\n'+sep+'\nGenerated by AI Podcast Generator\nTopics: '+topics.join(', ')+'\n';
-    log('Formatted. '+script.length+' chars', 'ok');
+    log('Formatted. '+script.length+' chars total', 'ok');
     setStep(2,'done','Script formatted.',script.length+' chars');
 
   } catch(e) {
     log('ERROR: '+e.message,'err');
     setStep(1,'error','Error.',e.message); setStep(2,'error'); setStep(3,'error');
-    document.getElementById('result').innerHTML = '<div class="error-box"><strong>Error:</strong> '+e.message+'</div>';
-    if (!document.getElementById('logBox').classList.contains('open')) toggleLog();
-    btn.disabled = false; return;
+    document.getElementById('result').innerHTML = '<div class="result-error"><strong>Error</strong>'+e.message+'</div>';
+    if (!document.getElementById('logBody').classList.contains('open')) toggleLog();
+    btn.disabled=false; btn.classList.remove('running'); return;
   }
 
-  // Step 3 — If token expired, refresh it first
+  // Refresh token if needed
   if (accessToken) {
     try {
-      const testResp = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
-        headers: { Authorization: 'Bearer '+accessToken }
-      });
-      if (testResp.status === 401) {
-        log('Access token expired, refreshing...', 'warn');
-        const refreshResp = await fetch(base+'/auth/token', { method: 'POST', headers: { 'X-App-Password': password } });
-        const refreshData = await refreshResp.json();
-        if (refreshData.access_token) { accessToken = refreshData.access_token; log('Token refreshed', 'ok'); }
-        else { accessToken = null; }
+      const test = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json',{headers:{Authorization:'Bearer '+accessToken}});
+      if (test.status===401) {
+        log('Refreshing access token...','warn');
+        const r = await fetch(base+'/auth/token',{method:'POST',headers:{'X-App-Password':password}});
+        const d = await r.json();
+        if (d.access_token) { accessToken=d.access_token; log('Token refreshed','ok'); }
+        else accessToken=null;
       }
     } catch(e) {}
   }
@@ -595,44 +904,49 @@ async function run() {
     setStep(3,'active','Uploading to Drive...','');
     log('Uploading '+fileName+'...');
     try {
-      const meta     = JSON.stringify({ name: fileName, mimeType: 'text/plain' });
-      const boundary = 'podcast_boundary';
-      const body     = '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+boundary+'\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n'+script+'\r\n--'+boundary+'--';
-      const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer '+accessToken, 'Content-Type': 'multipart/related; boundary='+boundary },
-        body
+      const meta='{"name":"'+fileName+'","mimeType":"text/plain"}';
+      const boundary='pb';
+      const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+boundary+'\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n'+script+'\r\n--'+boundary+'--';
+      const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{
+        method:'POST', headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'multipart/related; boundary='+boundary}, body
       });
-      if (!up.ok) { const e = await up.json().catch(()=>({})); throw new Error(e.error?.message||'Drive error '+up.status); }
+      if (!up.ok) { const e=await up.json().catch(()=>({})); throw new Error(e.error?.message||'Drive error '+up.status); }
       const file = await up.json();
-      log('Uploaded. ID: '+file.id,'ok');
+      log('Uploaded successfully', 'ok');
       setStep(3,'done','Uploaded to Drive.',file.name);
       document.getElementById('result').innerHTML =
-        '<div class="success-box"><div class="ttl">&#10003; '+file.name+' uploaded</div>'+
+        '<div class="result-success">'+
+        '<div class="r-title">&#10003; Uploaded to Google Drive</div>'+
+        '<div style="font-size:0.82rem;margin-bottom:6px;">'+file.name+'</div>'+
         (file.webViewLink?'<div><a href="'+file.webViewLink+'" target="_blank">Open in Google Drive &rarr;</a></div>':'')+
-        '<hr><strong>Next:</strong> Open <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a> &rarr; Add source &rarr; Google Drive &rarr; select the file &rarr; Generate Audio Overview.</div>';
+        '<hr class="r-divider">'+
+        '<div class="r-next"><strong>Next:</strong> Open <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a> &rarr; Add source &rarr; Google Drive &rarr; select the file &rarr; Generate Audio Overview</div>'+
+        '</div>';
     } catch(e) {
-      log('Drive failed: '+e.message,'err');
-      setStep(3,'error','Upload failed.','Downloading instead');
+      log('Drive upload failed: '+e.message,'err');
+      setStep(3,'error','Upload failed.','Downloading locally instead');
       downloadFile(script,fileName);
-      document.getElementById('result').innerHTML = '<div class="error-box"><strong>Drive upload failed:</strong> '+e.message+'<br><br>File downloaded instead.</div>';
+      document.getElementById('result').innerHTML='<div class="result-error"><strong>Drive upload failed</strong>'+e.message+'<br><br>File downloaded to your device instead.</div>';
     }
   } else {
-    log('No Drive connection — downloading.','warn');
+    log('No Drive connection — downloading locally','warn');
     setStep(3,'skip','Downloaded locally.','');
     downloadFile(script,fileName);
-    document.getElementById('result').innerHTML =
-      '<div class="success-box"><div class="ttl">&#10003; '+fileName+' downloaded</div><div>Upload to <a href="https://drive.google.com" target="_blank">Google Drive</a> then add as source in <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a>.</div></div>';
+    document.getElementById('result').innerHTML=
+      '<div class="result-success">'+
+      '<div class="r-title">&#10003; Script downloaded</div>'+
+      '<div class="r-next">Upload it to <a href="https://drive.google.com" target="_blank">Google Drive</a>, then add as a source in <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a>.</div>'+
+      '</div>';
   }
 
   log('Done.','ok');
-  btn.disabled = false;
+  btn.disabled=false; btn.classList.remove('running');
 }
 
 function downloadFile(content, name) {
-  const blob = new Blob([content],{type:'text/plain;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'),{href:url,download:name});
+  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=Object.assign(document.createElement('a'),{href:url,download:name});
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
