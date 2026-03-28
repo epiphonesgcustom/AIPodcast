@@ -1,183 +1,24 @@
-AI PODCAST GENERATOR — DEPLOYMENT GUIDE
-========================================
-Mobile PWA version (GitHub Pages + Cloudflare Workers)
-
-
-FILES IN THIS PACKAGE
-=====================
-
-  podcast-generator.html   The app
-  manifest.json            PWA manifest (makes it installable on Android)
-  sw.js                    Service worker (required for install prompt)
-  icons/icon-192.png       App icon
-  icons/icon-512.png       App icon (large)
-  worker.js                Cloudflare Worker code (paste into Cloudflare dashboard)
-  DEPLOY.txt               This file
-
-
-STEP 1 — DEPLOY THE CLOUDFLARE WORKER
-======================================
-This is your secure proxy to the Claude API. No credit card required.
-
-1.  Go to https://cloudflare.com and create a free account (email only)
-
-2.  In the dashboard, click Workers & Pages in the left sidebar
-
-3.  Click Create → Create Worker
-
-4.  Delete the default "Hello World" code entirely
-
-5.  Open worker.js from this package and paste the entire contents
-
-6.  Click Deploy — Cloudflare gives you a URL like:
-        https://your-worker-name.your-account.workers.dev
-    Note this URL down — you'll need it later.
-
-7.  Go to your Worker → Settings → Variables and Secrets
-
-8.  Click Add Secret:
-        Name:  ANTHROPIC_API_KEY
-        Value: your Claude API key (sk-ant-...)
-    Click Save
-
-9.  Click Add Secret again:
-        Name:  APP_PASSWORD
-        Value: a password you choose (e.g. "BlueFox92!" — anything memorable)
-    Click Save
-
-    Your API key and password are now encrypted and will never be visible again.
-
-10. Test your Worker by visiting:
-        https://your-worker-name.workers.dev/claude
-    You should see: {"error":"Not found"} — this means it's running correctly.
-    (It returns an error because you need to POST with the right headers, not GET)
-
-
-STEP 2 — PUBLISH TO GITHUB PAGES
-===================================
-
-1.  Go to github.com and create a new repository
-    Name it something like: podcast-generator
-    Set it to Public (GitHub Pages requires this on free accounts)
-    Tick "Add a README file"
-    Click Create repository
-
-2.  Upload these files to the repository root:
-        podcast-generator.html
-        manifest.json
-        sw.js
-        icons/icon-192.png
-        icons/icon-512.png
-
-    To upload: click Add file → Upload files, drag them all in, commit.
-
-3.  Enable GitHub Pages:
-    Go to repository Settings → Pages
-    Source: Deploy from a branch
-    Branch: main  /  (root)
-    Click Save
-
-4.  Wait about 60 seconds, then your app is live at:
-        https://yourusername.github.io/podcast-generator/podcast-generator.html
-
-    GitHub will show the URL in Settings → Pages once it's ready.
-
-
-STEP 3 — UPDATE GOOGLE OAUTH FOR YOUR GITHUB PAGES URL
-========================================================
-Your existing OAuth Client ID needs the GitHub Pages URL added to it.
-
-1.  Go to https://console.cloud.google.com/apis/credentials
-2.  Click your existing OAuth client to edit it
-3.  Under Authorised JavaScript origins, click + Add URI:
-        https://yourusername.github.io
-4.  Under Authorised redirect URIs, click + Add URI:
-        https://yourusername.github.io/podcast-generator/podcast-generator.html
-5.  Click Save
-
-Note: keep your existing localhost entries if you still want the desktop
-version to work. You can have multiple origins and redirect URIs.
-
-
-STEP 4 — CONFIGURE THE APP
-============================
-Open your GitHub Pages URL in Chrome on your phone (or desktop).
-
-Fill in the fields:
-  - Claude API key: your sk-ant-... key
-  - App password: the password you set in Cloudflare (Step 1, item 9)
-  - Worker URL: https://your-worker-name.workers.dev/claude
-    (your Cloudflare Worker URL with /claude at the end)
-  - OAuth Client ID: your existing Client ID
-
-Tick "Remember on this device" for each — you only need to enter them once
-per device.
-
-Click Connect Google Drive and sign in.
-
-
-STEP 5 — INSTALL AS AN APP ON ANDROID
-=======================================
-1.  Open Chrome on your Android phone
-2.  Visit your GitHub Pages URL
-3.  Chrome will show a banner at the bottom: "Add Podcast Gen to Home screen"
-    Tap Install (or Add)
-4.  The app icon appears on your home screen
-5.  Tap it — it opens full screen like a native app
-
-If the banner doesn't appear automatically:
-- Tap the three-dot menu in Chrome → "Add to Home screen"
-
-
-USING BOTH DESKTOP AND MOBILE
-===============================
-The desktop version (start.cmd + proxy.py) continues to work exactly as
-before — nothing changes there.
-
-The mobile/PWA version uses the Cloudflare Worker instead of the local proxy.
-Both versions share the same Google Drive account and upload files to the
-same place — so you can generate on desktop or phone interchangeably.
-
-
-SECURITY SUMMARY
-=================
-- Your Claude API key is stored as an encrypted Cloudflare secret
-  (never in code, never visible after saving)
-- The APP_PASSWORD prevents anyone else from using your Worker even if
-  they find your GitHub Pages URL
-- OAuth tokens are stored in localStorage on your device only
-- The GitHub repository contains no secrets — it's safe to be public
-- Worst case if your Worker URL leaks: someone would need both the URL
-  AND your APP_PASSWORD to make API calls
-
-
-TROUBLESHOOTING
-================
-"Invalid password" error
-  → The APP_PASSWORD in the app doesn't match the secret in Cloudflare.
-    Double-check both. Passwords are case-sensitive.
-
-"Worker error 404"
-  → Make sure your Worker URL ends in /claude
-    e.g. https://my-worker.workers.dev/claude  (not just /workers.dev)
-
-"Worker error 500"
-  → The ANTHROPIC_API_KEY secret may be wrong or missing in Cloudflare.
-    Go to Worker → Settings → Variables and Secrets and check.
-
-Drive shows "Not connected" on phone
-  → The silent re-auth only works if you're signed into Google in Chrome.
-    Tap Connect Google Drive to re-authenticate.
-
-"redirect_uri_mismatch" when connecting Drive
-  → Add your GitHub Pages URL to the OAuth client's Authorised redirect
-    URIs (Step 3 above). Wait a few minutes for Google to propagate.
-
-Install prompt doesn't appear on Android
-  → The PWA requires HTTPS (GitHub Pages provides this automatically).
-    Make sure you're visiting the https:// URL, not http://.
-    Try Chrome menu → Add to Home screen if the banner doesn't show.
-
-App icon appears but shows blank screen
-  → Hard-refresh: in Chrome tap menu → Reload. If still blank, clear
-    Chrome's cache for the site in Settings → Site settings.
+{
+  "name": "AI Podcast Generator",
+  "short_name": "Podcast Gen",
+  "description": "Generate weekly AI podcast scripts and upload to Google Drive for NotebookLM",
+  "start_url": "/podcast-generator.html",
+  "display": "standalone",
+  "background_color": "#f0f0ee",
+  "theme_color": "#111111",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
