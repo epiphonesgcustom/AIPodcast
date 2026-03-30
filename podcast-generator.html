@@ -744,9 +744,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Auth message from popup
   window.addEventListener('message', e => {
+    // Only accept messages from Google's OAuth domain (the popup we opened)
+    // or our own origin (for future same-origin messaging)
+    const allowed = ['https://accounts.google.com', window.location.origin];
+    if (!allowed.includes(e.origin)) return;
     if (e.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+      // Validate the token looks like a real Google token (basic sanity check)
+      if (typeof e.data.access_token !== 'string' || e.data.access_token.length < 20) return;
       accessToken = e.data.access_token;
-      setAuthConnected(e.data.email);
+      setAuthConnected(typeof e.data.email === 'string' ? e.data.email : '');
     }
   });
 
@@ -763,12 +769,36 @@ function connectDrive() {
   const pw   = getPassword();
   if (!base) { alert('Please enter your Worker URL first (in API configuration).'); return; }
   if (!pw)   { alert('Please enter your app password first (in API configuration).'); return; }
+
+  // Open popup to a neutral /auth/start page — password is NOT in the URL.
+  // The Worker /auth/start page sends a postMessage back asking for credentials,
+  // which we answer here. This keeps the password out of browser history and logs.
+  // Fallback: if popups are blocked, use redirect (password unavoidably in URL then).
+  const popupUrl = base + '/auth/start';
   const popup = window.open(
-    base + '/auth/login?app_password=' + encodeURIComponent(pw),
+    popupUrl,
     'google_auth',
     'width=500,height=650,left='+Math.round(screen.width/2-250)+',top='+Math.round(screen.height/2-325)
   );
-  if (!popup) window.location.href = base + '/auth/login?app_password=' + encodeURIComponent(pw);
+
+  if (popup) {
+    // Wait for the popup to signal it's ready, then send the password
+    const handler = e => {
+      if (e.origin !== new URL(base).origin) return;
+      if (e.data?.type === 'AUTH_READY') {
+        popup.postMessage({ type: 'AUTH_CREDENTIALS', password: pw }, new URL(base).origin);
+        window.removeEventListener('message', handler);
+      }
+    };
+    window.addEventListener('message', handler);
+    // Clean up listener if popup is closed without completing
+    const check = setInterval(() => {
+      if (popup.closed) { window.removeEventListener('message', handler); clearInterval(check); }
+    }, 1000);
+  } else {
+    // Popup blocked — fall back to redirect with password in URL
+    window.location.href = base + '/auth/login?app_password=' + encodeURIComponent(pw);
+  }
 }
 
 async function disconnectDrive() {
@@ -824,14 +854,24 @@ function toggleResearch() {
   arr.style.transform = open ? 'rotate(90deg)' : '';
 }
 
+function esc(str) {
+  // Escape HTML special characters to prevent XSS when inserting into innerHTML
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function showResearch(researchResults) {
   const panel = document.getElementById('researchPanel');
   const body  = document.getElementById('researchBody');
   panel.style.display = 'block';
   body.innerHTML = researchResults.map(r =>
     '<div class="research-topic">' +
-    '<div class="research-topic-name">' + r.topic + '</div>' +
-    '<div class="research-content">' + r.research.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+    '<div class="research-topic-name">' + esc(r.topic) + '</div>' +
+    '<div class="research-content">' + esc(r.research) + '</div>' +
     '</div>'
   ).join('');
 }
@@ -946,7 +986,7 @@ async function run() {
   } catch(e) {
     log('ERROR: '+e.message,'err');
     setStep(1,'error','Error.',e.message); setStep(2,'error'); setStep(3,'error'); setStep(4,'error');
-    document.getElementById('result').innerHTML = '<div class="result-error"><strong>Error</strong>'+e.message+'</div>';
+    document.getElementById('result').innerHTML = '<div class="result-error"><strong>Error</strong>' + esc(e.message) + '</div>';
     if (!document.getElementById('logBody').classList.contains('open')) toggleLog();
     btn.disabled=false; btn.classList.remove('running'); return;
   }
@@ -979,20 +1019,27 @@ async function run() {
       if (!up.ok) { const e=await up.json().catch(()=>({})); throw new Error(e.error?.message||'Drive error '+up.status); }
       const file = await up.json();
       log('Uploaded successfully', 'ok');
-      setStep(4,'done','Uploaded to Drive.',file.name);
-      document.getElementById('result').innerHTML =
-        '<div class="result-success">'+
-        '<div class="r-title">&#10003; Uploaded to Google Drive</div>'+
-        '<div style="font-size:0.82rem;margin-bottom:6px;">'+file.name+'</div>'+
-        (file.webViewLink?'<div><a href="'+file.webViewLink+'" target="_blank">Open in Google Drive &rarr;</a></div>':'')+
-        '<hr class="r-divider">'+
-        '<div class="r-next"><strong>Next:</strong> Open <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a> &rarr; Add source &rarr; Google Drive &rarr; select the file &rarr; Generate Audio Overview</div>'+
-        '</div>';
+      setStep(4,'done','Uploaded to Drive.', esc(file.name || ''));
+
+      // Validate webViewLink is a safe https URL before using in href
+      const safeLink = (typeof file.webViewLink === 'string' && file.webViewLink.startsWith('https://'))
+        ? file.webViewLink : null;
+
+      const resultDiv = document.createElement('div');
+      resultDiv.className = 'result-success';
+      resultDiv.innerHTML =
+        '<div class="r-title">&#10003; Uploaded to Google Drive</div>' +
+        '<div style="font-size:0.82rem;margin-bottom:6px;">' + esc(file.name || '') + '</div>' +
+        (safeLink ? '<div><a href="' + esc(safeLink) + '" target="_blank" rel="noopener noreferrer">Open in Google Drive &rarr;</a></div>' : '') +
+        '<hr class="r-divider">' +
+        '<div class="r-next"><strong>Next:</strong> Open <a href="https://notebooklm.google.com" target="_blank" rel="noopener noreferrer">NotebookLM</a> &rarr; Add source &rarr; Google Drive &rarr; select the file &rarr; Generate Audio Overview</div>';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('result').appendChild(resultDiv);
     } catch(e) {
       log('Drive upload failed: '+e.message,'err');
       setStep(4,'error','Upload failed.','Downloading locally instead');
       downloadFile(script,fileName);
-      document.getElementById('result').innerHTML='<div class="result-error"><strong>Drive upload failed</strong>'+e.message+'<br><br>File downloaded to your device instead.</div>';
+      document.getElementById('result').innerHTML='<div class="result-error"><strong>Drive upload failed</strong>' + esc(e.message) + '<br><br>File downloaded to your device instead.</div>';
     }
   } else {
     log('No Drive connection — downloading locally','warn');
