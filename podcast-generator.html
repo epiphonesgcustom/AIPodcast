@@ -465,19 +465,7 @@
       <span class="section-chevron">&#9654;</span>
     </div>
     <div class="section-body">
-      <div class="field">
-        <label for="claudeKey">Claude API key</label>
-        <div class="input-wrap">
-          <input type="password" id="claudeKey" placeholder="sk-ant-..." autocomplete="off" />
-          <button class="eye-btn" onclick="toggleVis('claudeKey')" aria-label="Show/hide">
-            <svg id="eye-claudeKey" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="saveClaudeKey" />
-          <label for="saveClaudeKey">Remember on this device</label>
-        </div>
-      </div>
+
       <div class="field">
         <label for="appPassword">App password</label>
         <div class="input-wrap">
@@ -488,7 +476,7 @@
         </div>
         <div class="checkbox-row">
           <input type="checkbox" id="savePassword" />
-          <label for="savePassword">Remember on this device</label>
+          <label for="savePassword">Remember this session</label>
         </div>
       </div>
       <div class="field">
@@ -618,11 +606,31 @@ function dismissInstall() {
   LS.set('install_dismissed', '1');
 }
 
-// ── localStorage ──────────────────────────────────────────────────────────
+// ── Storage helpers ───────────────────────────────────────────────────────
+// Sensitive credentials (API key, app password) use sessionStorage —
+// cleared automatically when the tab/browser closes.
+// Non-sensitive config (Worker URL, Client ID) uses localStorage — persists.
+const SENSITIVE_KEYS = ['app_password'];
+
 const LS = {
-  get: k     => { try { return localStorage.getItem(k); }  catch(e){ return null; } },
-  set: (k,v) => { try { localStorage.setItem(k, v); }      catch(e){} },
-  del: k     => { try { localStorage.removeItem(k); }      catch(e){} }
+  get: k => {
+    try {
+      const store = SENSITIVE_KEYS.includes(k) ? sessionStorage : localStorage;
+      return store.getItem(k);
+    } catch(e) { return null; }
+  },
+  set: (k, v) => {
+    try {
+      const store = SENSITIVE_KEYS.includes(k) ? sessionStorage : localStorage;
+      store.setItem(k, v);
+    } catch(e) {}
+  },
+  del: k => {
+    try {
+      sessionStorage.removeItem(k);
+      localStorage.removeItem(k);
+    } catch(e) {}
+  }
 };
 
 // ── State ─────────────────────────────────────────────────────────────────
@@ -723,7 +731,6 @@ function handleStatusAction() {
 window.addEventListener('DOMContentLoaded', () => {
   // Restore saved values
   const fields = [
-    ['claudeKey','claude_key','saveClaudeKey'],
     ['appPassword','app_password','savePassword'],
     ['workerUrl','worker_url','saveWorkerUrl'],
     ['clientId','goog_client_id','saveClientId'],
@@ -744,12 +751,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Auth message from popup
   window.addEventListener('message', e => {
-    // Only accept messages from Google's OAuth domain (the popup we opened)
-    // or our own origin (for future same-origin messaging)
-    const allowed = ['https://accounts.google.com', window.location.origin];
-    if (!allowed.includes(e.origin)) return;
+    // Only accept GOOGLE_AUTH_SUCCESS from the Worker origin (that's where
+    // /auth/callback runs and sends the postMessage back to us).
+    const WORKER_ORIGIN = 'https://misty-mud-5a13.epiphonesgcustom.workers.dev';
+    if (e.origin !== WORKER_ORIGIN) return;
     if (e.data?.type === 'GOOGLE_AUTH_SUCCESS') {
-      // Validate the token looks like a real Google token (basic sanity check)
       if (typeof e.data.access_token !== 'string' || e.data.access_token.length < 20) return;
       accessToken = e.data.access_token;
       setAuthConnected(typeof e.data.email === 'string' ? e.data.email : '');
@@ -770,34 +776,19 @@ function connectDrive() {
   if (!base) { alert('Please enter your Worker URL first (in API configuration).'); return; }
   if (!pw)   { alert('Please enter your app password first (in API configuration).'); return; }
 
-  // Open popup to a neutral /auth/start page — password is NOT in the URL.
-  // The Worker /auth/start page sends a postMessage back asking for credentials,
-  // which we answer here. This keeps the password out of browser history and logs.
-  // Fallback: if popups are blocked, use redirect (password unavoidably in URL then).
-  const popupUrl = base + '/auth/start';
+  // The Worker /auth/login checks the password immediately and never stores it —
+  // it generates a random nonce for the OAuth state parameter instead.
+  // The password is in the URL briefly but is consumed in the first HTTP request
+  // and does not appear in the OAuth redirect or callback URLs.
+  const loginUrl = base + '/auth/login?app_password=' + encodeURIComponent(pw);
   const popup = window.open(
-    popupUrl,
+    loginUrl,
     'google_auth',
     'width=500,height=650,left='+Math.round(screen.width/2-250)+',top='+Math.round(screen.height/2-325)
   );
-
-  if (popup) {
-    // Wait for the popup to signal it's ready, then send the password
-    const handler = e => {
-      if (e.origin !== new URL(base).origin) return;
-      if (e.data?.type === 'AUTH_READY') {
-        popup.postMessage({ type: 'AUTH_CREDENTIALS', password: pw }, new URL(base).origin);
-        window.removeEventListener('message', handler);
-      }
-    };
-    window.addEventListener('message', handler);
-    // Clean up listener if popup is closed without completing
-    const check = setInterval(() => {
-      if (popup.closed) { window.removeEventListener('message', handler); clearInterval(check); }
-    }, 1000);
-  } else {
-    // Popup blocked — fall back to redirect with password in URL
-    window.location.href = base + '/auth/login?app_password=' + encodeURIComponent(pw);
+  if (!popup) {
+    // Popup blocked — navigate current window instead
+    window.location.href = loginUrl;
   }
 }
 
@@ -808,14 +799,9 @@ async function disconnectDrive() {
 }
 
 function handleOAuthCallback() {
-  const hash = window.location.hash;
-  if (!hash || !hash.includes('access_token')) { tryAutoConnect(); return; }
-  const token = new URLSearchParams(hash.substring(1)).get('access_token');
-  if (!token) return;
-  history.replaceState(null, '', window.location.pathname);
-  accessToken = token;
-  fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', { headers:{ Authorization:'Bearer '+token } })
-    .then(r=>r.json()).then(i=>setAuthConnected(i.email||'')).catch(()=>setAuthConnected(''));
+  // Authorization code flow is handled entirely by the Worker's /auth/callback.
+  // The app never receives tokens in the URL — just try silent reconnect on load.
+  tryAutoConnect();
 }
 
 async function tryAutoConnect() {
@@ -906,7 +892,6 @@ function clearLog() {
 
 // ── Main run ──────────────────────────────────────────────────────────────
 async function run() {
-  const claudeKey = document.getElementById('claudeKey').value.trim();
   const password  = getPassword();
   const base      = getWorkerBase();
   const showName  = document.getElementById('showName').value.trim() || 'The Weekly Tech Brief';
@@ -914,7 +899,6 @@ async function run() {
   const model     = document.getElementById('modelSelect').value || 'claude-sonnet-4-5';
   const topics    = [...document.querySelectorAll('#topics input')].map(i=>i.value.trim()).filter(Boolean);
 
-  if (!claudeKey)     { alert('Claude API key missing — open API configuration.'); return; }
   if (!password)      { alert('App password missing — open API configuration.'); return; }
   if (!base)          { alert('Worker URL missing — open API configuration.'); return; }
   if (!topics.length) { alert('Please add at least one topic.'); return; }
@@ -943,7 +927,7 @@ async function run() {
 
     const resp = await fetch(base+'/claude', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'X-Api-Key':claudeKey, 'X-App-Password':password },
+      headers: { 'Content-Type':'application/json', 'X-App-Password':password },
       body: JSON.stringify({ topics, prompt, model, max_tokens:4096 })
     });
 
