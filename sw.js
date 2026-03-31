@@ -1,6 +1,6 @@
 // Increment this version number every time you update the app files.
 // This forces the service worker to fetch fresh versions from the server.
-const CACHE = 'podcast-gen-v6';
+const CACHE = 'podcast-gen-v8';
 
 const SHELL = [
   '/AIPodcast/podcast-generator.html',
