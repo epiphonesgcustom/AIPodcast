@@ -1,17 +1,42 @@
 // AI Podcast Generator — Cloudflare Worker
 //
-// Required secrets (Settings → Variables and Secrets):
+// Secrets (Settings → Variables and Secrets) — never put values in this file:
 //   ANTHROPIC_API_KEY     — Claude API key (sk-ant-...)
-//   APP_PASSWORD          — password to protect the app
+//   APP_PASSWORD          — password protecting the app
 //   GOOGLE_CLIENT_ID      — Google OAuth client ID
 //   GOOGLE_CLIENT_SECRET  — Google OAuth client secret
 //
-// Required binding (Bindings tab):
+// Bindings (Bindings tab):
 //   AUTH_KV  → PODCAST_AUTH (KV namespace)
 
 const SCOPES   = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 const REDIRECT = 'https://misty-mud-5a13.epiphonesgcustom.workers.dev/auth/callback';
 const KV_KEY   = 'refresh_token';
+const APP_ORIGIN = 'https://epiphonesgcustom.github.io';
+
+// ── HTML escaping ─────────────────────────────────────────────────────────
+// Used everywhere user/API data is inserted into HTML to prevent XSS.
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ── JS string escaping ────────────────────────────────────────────────────
+// Used when inserting values into inline <script> string literals.
+function escJs(str) {
+  return String(str ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
 
 export default {
   async fetch(request, env) {
@@ -20,32 +45,23 @@ export default {
 
     // ── CORS preflight ─────────────────────────────────────────────
     if (request.method === 'OPTIONS') {
-      return cors(new Response(null, { status: 204 }));
-    }
-
-    // ── Auth: popup landing page ──────────────────────────────────
-    // Opens a neutral page in the popup that signals readiness via postMessage,
-    // then receives the password back — keeping it out of the URL/logs.
-    if (path === '/auth/start' && request.method === 'GET') {
-      return htmlPage('Connecting...', `
-        <p style="color:#666;">Waiting for credentials...</p>
-        <script>
-          window.opener.postMessage({ type: 'AUTH_READY' }, '*');
-          window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'AUTH_CREDENTIALS') {
-              window.location.href = '/auth/login?app_password=' + encodeURIComponent(e.data.password);
-            }
-          });
-        <\/script>
-      `);
+      return cors(new Response(null, { status: 204 }), env);
     }
 
     // ── Auth: start OAuth flow ─────────────────────────────────────
+    // GET /auth/login  (called from the app via window.open)
+    // Password is checked here; a random nonce is stored in KV as the
+    // CSRF state token — the password itself never enters any URL.
     if (path === '/auth/login' && request.method === 'GET') {
       const pw = url.searchParams.get('app_password') || '';
       if (!env.APP_PASSWORD || pw !== env.APP_PASSWORD) {
-        return cors(json({ error: 'Invalid password' }, 403));
+        return htmlPage('Error', '<p>Invalid password.</p>');
       }
+
+      // Generate a random CSRF nonce and store it temporarily in KV
+      const nonce = crypto.randomUUID();
+      await env.AUTH_KV.put('oauth_nonce', nonce, { expirationTtl: 600 }); // 10 min TTL
+
       const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
         client_id:     env.GOOGLE_CLIENT_ID,
         redirect_uri:  REDIRECT,
@@ -53,7 +69,7 @@ export default {
         scope:         SCOPES,
         access_type:   'offline',
         prompt:        'consent',
-        state:         pw,
+        state:         nonce,   // random nonce, not the password
       });
       return Response.redirect(authUrl, 302);
     }
@@ -61,10 +77,22 @@ export default {
     // ── Auth: OAuth callback ───────────────────────────────────────
     if (path === '/auth/callback' && request.method === 'GET') {
       const code  = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
       const error = url.searchParams.get('error');
 
+      // Verify CSRF nonce
+      const storedNonce = await env.AUTH_KV.get('oauth_nonce');
+      if (!storedNonce || state !== storedNonce) {
+        return htmlPage('Authentication failed',
+          '<p>Invalid or expired session. Please close this window and try connecting again.</p>');
+      }
+      await env.AUTH_KV.delete('oauth_nonce');
+
       if (error || !code) {
-        return htmlPage('Authentication failed', '<p>Google returned an error: ' + (error || 'no code') + '.</p>');
+        // Escape the error value — it comes from Google's redirect URL
+        return htmlPage('Authentication failed',
+          '<p>Google returned an error: ' + escHtml(error || 'no code') + '.</p>' +
+          '<p><a href="javascript:window.close()">Close this window</a> and try again.</p>');
       }
 
       const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
@@ -81,7 +109,8 @@ export default {
 
       const tokens = await tokenResp.json();
       if (!tokens.refresh_token) {
-        return htmlPage('Authentication failed', '<p>No refresh token received. Please try connecting again.</p>');
+        return htmlPage('Authentication failed',
+          '<p>No refresh token received. Please close this window and try connecting again.</p>');
       }
 
       await env.AUTH_KV.put(KV_KEY, tokens.refresh_token);
@@ -90,18 +119,34 @@ export default {
         headers: { Authorization: 'Bearer ' + tokens.access_token }
       });
       const user = await userResp.json();
+      const email       = String(user.email || '');
+      const accessToken = String(tokens.access_token || '');
 
-      return htmlPage('Connected!', '<p>&#10003; Google Drive connected as <strong>' + (user.email || 'your account') + '</strong></p>' +
+      // Send token back to opener via postMessage, targeting the app origin only.
+      // Both email and access_token are JS-escaped before insertion into the script.
+      return htmlPage('Connected!',
+        '<p>&#10003; Google Drive connected as <strong>' + escHtml(email) + '</strong></p>' +
         '<p style="margin-top:1rem;color:#666;">You can close this window and return to the app.</p>' +
-        '<script>if (window.opener) { window.opener.postMessage({ type: "GOOGLE_AUTH_SUCCESS", email: "' + (user.email || '') + '", access_token: "' + tokens.access_token + '" }, "*"); setTimeout(() => window.close(), 1500); }<\/script>');
+        '<script>' +
+        'window.addEventListener("load", function() {' +
+        '  if (window.opener) {' +
+        '    window.opener.postMessage(' +
+        '      { type: "GOOGLE_AUTH_SUCCESS", email: "' + escJs(email) + '", access_token: "' + escJs(accessToken) + '" },' +
+        '      "' + APP_ORIGIN + '"' +   // specific target origin, not "*"
+        '    );' +
+        '    setTimeout(function() { window.close(); }, 1500);' +
+        '  }' +
+        '});' +
+        '<\/script>'
+      );
     }
 
     // ── Auth: get fresh access token ───────────────────────────────
     if (path === '/auth/token' && request.method === 'POST') {
-      if (!checkPassword(request, env)) return cors(json({ error: 'Invalid password' }, 403));
+      if (!checkPassword(request, env)) return cors(json({ error: 'Invalid password' }, 403), env);
 
       const refreshToken = await env.AUTH_KV.get(KV_KEY);
-      if (!refreshToken) return cors(json({ error: 'Not authenticated' }, 401));
+      if (!refreshToken) return cors(json({ error: 'Not authenticated' }, 401), env);
 
       const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -115,35 +160,35 @@ export default {
       });
 
       const tokens = await tokenResp.json();
-      if (!tokens.access_token) return cors(json({ error: 'Failed to refresh token' }, 401));
+      if (!tokens.access_token) return cors(json({ error: 'Failed to refresh token' }, 401), env);
 
       const userResp = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
         headers: { Authorization: 'Bearer ' + tokens.access_token }
       });
       const user = await userResp.json();
 
-      return cors(json({ access_token: tokens.access_token, email: user.email || '' }));
+      return cors(json({ access_token: tokens.access_token, email: user.email || '' }), env);
     }
 
     // ── Auth: logout ───────────────────────────────────────────────
     if (path === '/auth/logout' && request.method === 'POST') {
-      if (!checkPassword(request, env)) return cors(json({ error: 'Invalid password' }, 403));
+      if (!checkPassword(request, env)) return cors(json({ error: 'Invalid password' }, 403), env);
       await env.AUTH_KV.delete(KV_KEY);
-      return cors(json({ ok: true }));
+      return cors(json({ ok: true }), env);
     }
 
     // ── Claude proxy ───────────────────────────────────────────────
     // Two-step pipeline:
-    //   Step 1: Haiku + web search  → research each topic, return summaries
-    //   Step 2: Chosen model        → write the full script from summaries
+    //   Step 1: Haiku + web search  → research each topic in parallel
+    //   Step 2: Chosen model        → write script from research summaries
     if (path === '/claude' && request.method === 'POST') {
-      if (!checkPassword(request, env)) return cors(json({ error: { message: 'Invalid password' } }, 403));
+      if (!checkPassword(request, env)) return cors(json({ error: { message: 'Invalid password' } }, 403), env);
 
       try {
         const payload = await request.json();
         const { topics, prompt, model, max_tokens } = payload;
 
-        // ── Step 1: Research with Haiku + web search (parallel) ──────
+        // Step 1: parallel research with Haiku
         const researchResults = await Promise.all(
           (topics || []).map(async topic => {
             const searchPrompt =
@@ -171,7 +216,7 @@ export default {
 
             if (!searchResp.ok) {
               const err = await searchResp.json().catch(() => ({}));
-              throw new Error('Research step failed for "' + topic + '": ' + (err.error?.message || searchResp.status));
+              throw new Error('Research failed for "' + topic + '": ' + (err.error?.message || searchResp.status));
             }
 
             const searchData = await searchResp.json();
@@ -185,7 +230,7 @@ export default {
           })
         );
 
-        // ── Step 2: Write script with chosen model ─────────────────
+        // Step 2: write script
         const researchContext = researchResults
           .map(r => '## Recent news for topic: ' + r.topic + '\n\n' + r.research)
           .join('\n\n---\n\n');
@@ -218,19 +263,14 @@ export default {
         }
 
         const writeData = await writeResp.json();
-
-        return cors(json({
-          content:  writeData.content,
-          usage:    writeData.usage,
-          research: researchResults,
-        }));
+        return cors(json({ content: writeData.content, usage: writeData.usage, research: researchResults }), env);
 
       } catch (e) {
-        return cors(json({ error: { message: e.message } }, 500));
+        return cors(json({ error: { message: e.message } }, 500), env);
       }
     }
 
-    return cors(new Response('Not found', { status: 404 }));
+    return new Response('Not found', { status: 404 });
   }
 };
 
@@ -246,17 +286,27 @@ function json(data, status = 200) {
   });
 }
 
-function cors(response) {
+function cors(response, env) {
   const r = new Response(response.body, response);
-  r.headers.set('Access-Control-Allow-Origin',  '*');
-  r.headers.set('Access-Control-Allow-Headers', 'Content-Type, X-App-Password, X-Api-Key, x-api-key');
+  // Restrict CORS to the app's origin only, not wildcard
+  r.headers.set('Access-Control-Allow-Origin',  APP_ORIGIN);
+  r.headers.set('Access-Control-Allow-Headers', 'Content-Type, X-App-Password');
   r.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  r.headers.set('Vary', 'Origin');
   return r;
 }
 
 function htmlPage(title, body) {
-  return new Response('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title>' +
+  return new Response(
+    '<!DOCTYPE html><html><head>' +
+    '<meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + escHtml(title) + '</title>' +
     '<style>body{font-family:-apple-system,sans-serif;max-width:480px;margin:4rem auto;padding:2rem;text-align:center;color:#111}h1{font-size:1.5rem;margin-bottom:1.5rem}</style>' +
-    '</head><body><h1>' + title + '</h1>' + body + '</body></html>',
-    { headers: { 'Content-Type': 'text/html' } });
+    '</head><body>' +
+    '<h1>' + escHtml(title) + '</h1>' +
+    body +
+    '</body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
 }
